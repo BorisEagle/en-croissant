@@ -266,4 +266,12 @@ const glyphToSvg: Record<Annotation, JSX.Element> = {
       />
     </>
   ),
+  "⭐": (
+    <>
+      <path
+        fill="#fff"
+        d="M50 24.5l7.6 15.4 17 2.5-12.3 12 2.9 17-15.2-8-15.2 8 2.9-17-12.3-12 17-2.5L50 24.5z"
+      />
+    </>
+  ),
 } as const;

@@ -1,6 +1,6 @@
 import type { BestMoves, Outcome, Score } from "@/bindings";
 import { ANNOTATION_INFO, type Annotation } from "@/utils/annotation";
-import { getPGN } from "@/utils/chess";
+import { getPGN, uciNormalize } from "@/utils/chess";
 import { parseSanOrUci, positionFromFen } from "@/utils/chessops";
 import { isPrefix } from "@/utils/misc";
 import { getAnnotation } from "@/utils/score";
@@ -686,6 +686,7 @@ function addAnalysis(
   }[],
 ) {
   let cur = state.root;
+  let prev: typeof state.root | null = null;
   let i = 0;
   while (cur !== undefined && i < analysis.length) {
     const [pos] = positionFromFen(cur.fen);
@@ -718,12 +719,28 @@ function addAnalysis(
       if (analysis[i].novelty) {
         cur.annotations = [...cur.annotations, "N"];
       }
-      cur.annotations = [...new Set(cur.annotations)];
+      // ⭐ Best move: played move equals engine top PV move from the previous position
+      if (i > 0 && prev && cur.move) {
+        const bestPrevUci = analysis[i - 1].best[0]?.uciMoves?.[0];
+        const [prevPos] = positionFromFen(prev.fen);
+        if (bestPrevUci && prevPos) {
+          const playedUci = uciNormalize(
+            prevPos,
+            cur.move,
+            state.headers.variant === "Chess960",
+          );
+          if (playedUci === bestPrevUci) {
+            cur.annotations = [...cur.annotations, "⭐"];
+          }
+        }
+      }
+	  cur.annotations = [...new Set(cur.annotations)];
       cur.annotations.sort((a, b) =>
         ANNOTATION_INFO[a].nag > ANNOTATION_INFO[b].nag ? 1 : -1,
       );
     }
-    cur = cur.children[0];
+    prev = cur;
+	cur = cur.children[0];
     i++;
   }
 }
